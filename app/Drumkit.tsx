@@ -33,7 +33,7 @@ export async function Drumkit() {
     <DrumMachine
       drumMachines={machines}
       samples={samples}
-      selectedMachine={machines[0]}
+      initialMachine={machines[0]}
     />
   )
 }
