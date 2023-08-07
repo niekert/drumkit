@@ -1,12 +1,13 @@
 import DrumMachine from "./components/DrumMachine"
 import fs from "fs"
+import { cache } from "react"
 
 export interface Sample {
   name: string
   url: string
 }
 
-export async function Drumkit() {
+export const getSamples = cache(async () => {
   const machines = fs.readdirSync("public/samples")
 
   const samples: Record<string, Sample[]> = {}
@@ -18,6 +19,15 @@ export async function Drumkit() {
       url: `/samples/${machine}/${file}`,
     }))
   }
+
+  return {
+    machines,
+    samples,
+  }
+})
+
+export async function Drumkit() {
+  const { machines, samples } = await getSamples()
 
   return (
     <DrumMachine

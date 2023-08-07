@@ -1,13 +1,14 @@
 "use client"
 import { useState, type ReactNode, useEffect, Fragment } from "react"
 import cx from "classnames"
+import { motion } from "framer-motion"
 
 import { IconAudio } from "./Icons"
 import {
-  SequencePlayer,
   Sequence,
   SessionSequence,
-  usePlayerstate,
+  usePlayer,
+  PlayerState,
 } from "../services/player"
 
 export interface Sample {
@@ -32,49 +33,6 @@ function newSequence(length: number): Sequence {
   return Array.from({ length }, () => 0)
 }
 
-function usePlayer(bpm: number, samples: Sample[]) {
-  const [isPlaying, setIsPlaying] = useState(false)
-
-  const [session, setSession] = useState<SessionSequence>(() => {
-    return samples.reduce<SessionSequence>((acc, sample) => {
-      acc[sample.name] = newSequence(16)
-
-      return acc
-    }, {})
-  })
-  const [player] = useState<SequencePlayer>(
-    () => new SequencePlayer(samples, session)
-  )
-
-  useEffect(() => {
-    player.setBpm(bpm)
-  }, [bpm, player])
-
-  const toggleNote = (sample: string, step: number) => {
-    const nextSession = {
-      ...session,
-      [sample]: session[sample].map((value, idx) => {
-        if (idx === step) {
-          return value === 0 ? 1 : 0
-        }
-
-        return value
-      }),
-    }
-
-    // Todo: maintain inside player?
-    setSession(nextSession)
-    player.update(nextSession)
-  }
-
-  return {
-    player,
-    isPlaying,
-    sequence: session,
-    toggleNote,
-  }
-}
-
 export default function DrumMachine({
   samples,
   selectedMachine,
@@ -84,18 +42,13 @@ export default function DrumMachine({
 
   const loadedSamples = samples[selectedMachine]
 
-  const {
-    sequence,
-    toggleNote: handleNoteClick,
-    player,
-  } = usePlayer(bpm, loadedSamples)
+  const { sequence, setNote, player, state } = usePlayer(bpm, loadedSamples)
 
-  const playerState = usePlayerstate()
-  const isPlaying = playerState === "started"
+  const isPlaying = state.status === "started"
 
   return (
     <div className="bg-gray-900 rounded-md p-8 gap-8 flex flex-col w-[1200px] max-w-full">
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <div className="text-5xl ">DrumKit</div>
         <div className="">
           <label htmlFor="bpm" className="">
@@ -124,8 +77,9 @@ export default function DrumMachine({
       <DrumSession
         samples={loadedSamples}
         sequence={sequence}
-        onNoteClick={handleNoteClick}
+        setNote={setNote}
         onPlaySample={player.playSample}
+        state={state}
       />
     </div>
   )
@@ -141,16 +95,28 @@ function isOddGroup(step: number) {
 interface DrumSequenceProps {
   samples: Sample[]
   sequence: SessionSequence
-  onNoteClick: (sample: string, stepIndex: number) => void
+  setNote: (sample: string, stepIndex: number, value: number) => void
   onPlaySample: (sample: string) => void
+  state: PlayerState
 }
 
 function DrumSession({
   sequence,
   samples,
-  onNoteClick,
+  setNote,
   onPlaySample,
+  state,
 }: DrumSequenceProps) {
+  const [dragMode, setDragMode] = useState<"add" | "delete" | null>(null)
+
+  useEffect(() => {
+    const onMouseUp = () => setDragMode(null)
+    document.addEventListener("mouseup", onMouseUp)
+    return () => document.removeEventListener("mouseup", onMouseUp)
+  })
+
+  console.log("state", state)
+
   return (
     <div className="grid gap-1 grid-cols-16th grid-rows-">
       {samples.map((sample) => (
@@ -164,17 +130,45 @@ function DrumSession({
               <IconAudio />
             </button>
           </div>
-          {sequence[sample.name].map((step, idx) => (
-            <button
-              onClick={() => onNoteClick(sample.name, idx)}
-              key={idx}
-              className={cx({
-                "bg-gray-700": !isOddGroup(idx),
-                "bg-gray-800": isOddGroup(idx),
-                "bg-blue-500": step == 1,
-              })}
-            ></button>
-          ))}
+          {sequence[sample.name].map((step, idx) => {
+            const isActive =
+              state.currentStep === idx && state.status === "started"
+            const isSelected = step > 0
+
+            return (
+              <motion.button
+                onMouseDown={() => {
+                  setDragMode(isSelected ? "delete" : "add")
+
+                  setNote(sample.name, idx, isSelected ? 0 : 1)
+                }}
+                onMouseOver={() => {
+                  if (dragMode != null) {
+                    setNote(sample.name, idx, dragMode === "delete" ? 0 : 1)
+                  }
+                }}
+                variants={{
+                  active: {
+                    scale: 1.3,
+                    borderRadius: "20%",
+                  },
+                  norma: {
+                    scale: 1,
+                    borderRadius: 0,
+                  },
+                }}
+                animate={isActive && isSelected ? "active" : "normal"}
+                key={idx}
+                className={cx({
+                  "bg-gray-700": !isActive && !isSelected && !isOddGroup(idx),
+                  "bg-gray-800": !isActive && !isSelected && isOddGroup(idx),
+                  "bg-blue-500": !isActive && isSelected,
+                  "bg-white": isActive && isSelected,
+                  "bg-gray-600": isActive && !isSelected,
+                })}
+              ></motion.button>
+            )
+          })}
         </Fragment>
       ))}
     </div>
