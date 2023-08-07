@@ -14,6 +14,25 @@ module.exports = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
     },
+    fontFamily: {
+      product: "var(--font-product)",
+    },
+    animation: {
+      tilt: "tilt 5s infinite linear",
+    },
+    keyframes: {
+      tilt: {
+        "0%, 50%, 100%": {
+          transform: "rotate(0deg)",
+        },
+        "25%": {
+          transform: "rotate(0.3deg)",
+        },
+        "75%": {
+          transform: "rotate(-0.3deg)",
+        },
+      },
+    },
   },
   plugins: [],
 }
