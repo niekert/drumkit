@@ -1,17 +1,5 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react"
-import {
-  PlaybackState,
-  Player,
-  Player as PlayerBuffer,
-  Sampler,
-  Transport,
-} from "tone"
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react"
+import { PlaybackState, Player, Player as PlayerBuffer, Transport } from "tone"
 import { EventEmitter } from "events"
 
 export interface Sample {
@@ -20,7 +8,7 @@ export interface Sample {
 }
 
 // 0 = off, 1 = on
-// Based on 16th notes for now
+// TODO: support velocity? <3
 export type Sequence = number[]
 export type SessionSequence = {
   [sample: string]: Sequence
@@ -46,28 +34,31 @@ function subscribe(subscribe: VoidFunction) {
   }
 }
 
-export function usePlayerstate() {
+export function useTransportState() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
-export class SequencePlayer {
+export class Sequencer {
   private tracks: Record<string, PlayerBuffer> = {}
   private currentStep: number = 0
-  private repeatIntervalId: number | null = null
   private emitter: EventEmitter = new EventEmitter()
-  private _session: SessionSequence
+  private _sequence: SessionSequence
+  private repeatIntervalId: number | null = null
+
+  public static newSequence(length: number): Sequence {
+    return Array.from({ length }, () => 0)
+  }
 
   public static fromSamples(samples: Sample[]) {
     return samples.reduce<SessionSequence>((acc, sample) => {
-      // TODO: back to 16?
-      acc[sample.name] = newSequence(16)
+      acc[sample.name] = Sequencer.newSequence(16)
 
       return acc
     }, {})
   }
 
   constructor(private samples: Sample[]) {
-    this._session = SequencePlayer.fromSamples(samples)
+    this._sequence = Sequencer.fromSamples(samples)
   }
 
   public setNote = (sample: string, step: number, nextValue?: number) => {
@@ -82,7 +73,7 @@ export class SequencePlayer {
       }),
     }
 
-    this._session = nextSession
+    this._sequence = nextSession
 
     this.emitter.emit("tick")
   }
@@ -91,13 +82,13 @@ export class SequencePlayer {
     const nextSession = Object.fromEntries(
       Object.entries(this.session).map(([sample, sequence]) => {
         const nextSequence =
-          mode === "empty" ? newSequence(16) : sequence.slice(-16)
+          mode === "empty" ? Sequencer.newSequence(16) : sequence.slice(-16)
 
         return [sample, [...sequence, ...nextSequence]]
       })
     ) satisfies SessionSequence
 
-    this._session = nextSession
+    this._sequence = nextSession
 
     this.emitter.emit("tick")
   }
@@ -186,51 +177,46 @@ export class SequencePlayer {
   }
 
   public get session() {
-    return this._session
+    return this._sequence
   }
-}
-
-function newSequence(length: number): Sequence {
-  return Array.from({ length }, () => 0)
 }
 
 export interface PlayerState {
   status: PlaybackState
+  sequence: SessionSequence
   currentStep: number
 }
 
-export function usePlayer(bpm: number, samples: Sample[]) {
-  const status = usePlayerstate()
+export function useSequencer(bpm: number, samples: Sample[]) {
+  const transportStatus = useTransportState()
 
-  const player = useMemo<SequencePlayer>(
-    () => new SequencePlayer(samples),
-    [samples]
-  )
+  // Use state instead of useMemo for safety?
+  const sequencer = useMemo<Sequencer>(() => new Sequencer(samples), [samples])
 
   const currentStep = useSyncExternalStore(
-    useCallback((subscribe) => player.tick(subscribe), [player]),
-    useCallback(() => player.step, [player]),
+    useCallback((subscribe) => sequencer.tick(subscribe), [sequencer]),
+    useCallback(() => sequencer.step, [sequencer]),
     () => 0
   )
 
-  const session = useSyncExternalStore(
-    useCallback((subscribe) => player.tick(subscribe), [player]),
-    useCallback(() => player.session, [player]),
-    useCallback(() => player.session, [player])
+  const sequence = useSyncExternalStore(
+    useCallback((subscribe) => sequencer.tick(subscribe), [sequencer]),
+    useCallback(() => sequencer.session, [sequencer]),
+    useCallback(() => sequencer.session, [sequencer])
   )
 
   useEffect(() => {
-    player.setBpm(bpm)
-  }, [bpm, player])
+    sequencer.setBpm(bpm)
+  }, [bpm, sequencer])
 
   const state: PlayerState = {
     currentStep,
-    status,
+    sequence,
+    status: transportStatus,
   }
 
   return {
-    player,
-    sequence: session,
+    sequencer: sequencer,
     state,
   }
 }

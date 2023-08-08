@@ -6,10 +6,9 @@ import { motion } from "framer-motion"
 import { IconAudio, IconDuplicate, IconPlus } from "./Icons"
 import {
   Sequence,
-  SessionSequence,
-  usePlayer,
+  useSequencer,
   PlayerState,
-  SequencePlayer,
+  Sequencer,
 } from "../services/player"
 
 export interface Sample {
@@ -44,7 +43,7 @@ export default function DrumMachine({
 
   const loadedSamples = samples[selectedMachine]
 
-  const { sequence, player, state } = usePlayer(
+  const { sequencer: sequencer, state } = useSequencer(
     bpmString.length > 0 ? Number.parseInt(bpmString) : 1,
     loadedSamples
   )
@@ -95,18 +94,19 @@ export default function DrumMachine({
         <div>
           <motion.button
             whileHover={{ scale: 1.04 }}
-            onClick={isPlaying ? player.stop : player.start}
-            className="p-4 rounded-md font-product -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 opacity-90"
+            onClick={isPlaying ? sequencer.stop : sequencer.start}
+            className={cx(
+              "p-4 rounded-md font-product -inset-0.5 bg-gradient-to-r transition",
+              {
+                " from-blue-500 to-purple-500 opacity-90": !isPlaying,
+                " from-purple-950 to-blue-950": isPlaying,
+              }
+            )}
           >
             {isPlaying ? "Stop" : "Play"}
           </motion.button>
         </div>
-        <DrumSession
-          samples={loadedSamples}
-          sequence={sequence}
-          player={player}
-          state={state}
-        />
+        <DrumSession samples={loadedSamples} player={sequencer} state={state} />
       </div>
     </div>
   )
@@ -121,12 +121,11 @@ function isOddGroup(step: number) {
 
 interface DrumSequenceProps {
   samples: Sample[]
-  sequence: SessionSequence
-  player: SequencePlayer
+  player: Sequencer
   state: PlayerState
 }
 
-function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
+function DrumSession({ samples, player, state }: DrumSequenceProps) {
   const [dragMode, setDragMode] = useState<"add" | "delete" | null>(null)
 
   useEffect(() => {
@@ -139,21 +138,21 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
     return () => document.removeEventListener("mouseup", onMouseUp)
   })
 
+  const sequenceLength = state.sequence[Object.keys(state.sequence)[0]].length
+
   return (
     <div className="overflow-auto pb-3 flex items-center">
       <div
         className="grid gap-1 overflow-x-auto max-w-full py-4 relative"
         style={{
           gridTemplateRows: `repeat(${samples.length}, 1fr)`,
-          gridTemplateColumns: `auto repeat(${
-            sequence[Object.keys(sequence)[0]].length
-          }, 50px) auto`,
+          gridTemplateColumns: `auto repeat(${sequenceLength}, 50px) auto`,
         }}
       >
         {samples.map((sample) => (
           <Fragment key={sample.name}>
             <div
-              className="grid-col flex items-center rounded-sm border-gray-700 py-1 px-1 border last-of-type:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20 font-product whitespace-nowrap"
+              className="grid-col flex items-center rounded-sm border-gray-700 py-1 px-1 border last-of-type:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20 font-product whitespace-nowrap lg:w-[200px]"
               key={sample.url}
               style={{
                 gridColumn: 1,
@@ -162,13 +161,13 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
               <span>{sample.name}</span>
               <button
                 onClick={() => player.playSample(sample.name)}
-                className="text-gray-300 hover:text-gray-100 ml-2 lg:ml-20"
+                className="text-gray-300 hover:text-gray-100 ml-2"
               >
                 <IconAudio />
               </button>
             </div>
 
-            {sequence[sample.name].map((step, idx) => {
+            {state.sequence[sample.name].map((step, idx) => {
               const isActive =
                 state.currentStep === idx && state.status === "started"
               const isSelected = step > 0
@@ -220,7 +219,7 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
   )
 }
 
-export function EndOfSequenceActions({ player }: { player: SequencePlayer }) {
+export function EndOfSequenceActions({ player }: { player: Sequencer }) {
   return (
     <div
       className="flex flex-col items-center justify-center gap-6"
