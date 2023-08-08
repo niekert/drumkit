@@ -56,7 +56,7 @@ export default function DrumMachine({
       {/* GLOEIENDE GLOEIENDE */}
       <div className="hidden lg:block absolute z-0 -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-60 group-hover:opacity-75 transition duration-1000 group-hover:duration-500 animate-tilt"></div>
       <div className="z-10 bg-black p-8 rounded-lg space-y-6">
-        <div className="flex flex-col md:flex-row justify-between md:items-center items-start">
+        <div className="flex flex-col sm:flex-row justify-between md:items-center items-start gap-8">
           <div className="text-5xl font-product">
             <span>DRUM</span>
             <span className="opacity-70">KIT</span>
@@ -145,7 +145,7 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
         className="grid gap-1 overflow-x-auto max-w-full py-4 relative"
         style={{
           gridTemplateRows: `repeat(${samples.length}, 1fr)`,
-          gridTemplateColumns: `200px repeat(${
+          gridTemplateColumns: `auto repeat(${
             sequence[Object.keys(sequence)[0]].length
           }, 50px) auto`,
         }}
@@ -153,7 +153,7 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
         {samples.map((sample) => (
           <Fragment key={sample.name}>
             <div
-              className="grid-col flex items-center rounded-sm border-gray-700 py-1 px-1 border last-of-type:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20 font-product "
+              className="grid-col flex items-center rounded-sm border-gray-700 py-1 px-1 border last-of-type:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20 font-product whitespace-nowrap"
               key={sample.url}
               style={{
                 gridColumn: 1,
@@ -162,7 +162,7 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
               <span>{sample.name}</span>
               <button
                 onClick={() => player.playSample(sample.name)}
-                className="text-gray-300 hover:text-gray-100"
+                className="text-gray-300 hover:text-gray-100 ml-2 lg:ml-20"
               >
                 <IconAudio />
               </button>
