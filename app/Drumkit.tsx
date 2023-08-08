@@ -1,5 +1,6 @@
 import DrumMachine from "./components/DrumMachine"
 import fs from "fs"
+import path from "path"
 import { cache } from "react"
 
 export interface Sample {
@@ -7,8 +8,14 @@ export interface Sample {
   url: string
 }
 
+const samplePath = "public/samples"
+
 export const getSamples = cache(async () => {
-  const machines = fs.readdirSync("public/samples")
+  const machines = fs.readdirSync(samplePath).filter((m) => {
+    const fullPath = path.join(samplePath, m)
+
+    return fs.existsSync(fullPath) && fs.lstatSync(fullPath).isDirectory()
+  })
 
   const samples: Record<string, Sample[]> = {}
   for (let machine of machines) {

@@ -39,12 +39,15 @@ export default function DrumMachine({
   initialMachine,
   drumMachines,
 }: DrumMachineProps): ReactNode {
-  const [bpm, setBpm] = useState(120)
+  const [bpmString, setBpm] = useState("120")
   const [selectedMachine, setSelectedMachine] = useState(initialMachine)
 
   const loadedSamples = samples[selectedMachine]
 
-  const { sequence, player, state } = usePlayer(bpm, loadedSamples)
+  const { sequence, player, state } = usePlayer(
+    bpmString.length > 0 ? Number.parseInt(bpmString) : 1,
+    loadedSamples
+  )
 
   const isPlaying = state.status === "started"
 
@@ -75,8 +78,10 @@ export default function DrumMachine({
             type="number"
             className="ml-2 w-12 h-8 text-black"
             placeholder="BPM"
-            value={bpm}
-            onChange={(e) => setBpm(Number.parseInt(e.target.value))}
+            value={bpmString}
+            min={1}
+            max={1000}
+            onChange={(e) => setBpm(e.target.value)}
           />
         </div>
       </div>
