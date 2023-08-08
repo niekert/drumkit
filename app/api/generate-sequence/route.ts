@@ -57,7 +57,7 @@ Below are the most important rules you should stick to:
 `
 
 export async function POST(req: NextRequest) {
-  const requestBody = nextBeatReq.parse(await req.json())
+  const requestBody = await req.json()
 
   const response = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
