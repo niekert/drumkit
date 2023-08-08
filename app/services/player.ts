@@ -81,23 +81,32 @@ export class Sequencer {
 
   public extend = <
     TMode extends "copy" | "empty" | "set",
-    TSequence extends TMode extends "set" ? SessionSequence : never
+    TArgs extends TMode extends "set"
+      ? { mode: TMode; setSequence: SessionSequence }
+      : { mode: TMode }
   >(
-    mode: TMode,
-    setSequence: TSequence
+    args: TArgs
   ) => {
     const nextSession = Object.fromEntries(
       Object.entries(this.sequence).map(([sample, sequence]) => {
         const nextSequence =
-          mode === "set"
-            ? setSequence[sample]
-            : mode === "empty"
+          args.mode === "set"
+            ? args.setSequence[sample]
+            : args.mode === "empty"
             ? Sequencer.newSequence(16)
             : sequence.slice(-16)
 
         return [sample, [...sequence, ...nextSequence]]
       })
     ) satisfies SessionSequence
+
+    this._sequence = nextSession
+
+    this.emitter.emit("tick")
+  }
+
+  public clear = () => {
+    const nextSession = Sequencer.fromSamples(this.samples)
 
     this._sequence = nextSession
 

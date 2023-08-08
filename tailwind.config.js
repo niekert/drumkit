@@ -19,6 +19,7 @@ module.exports = {
     },
     animation: {
       tilt: "tilt 5s infinite linear",
+      pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
     },
     keyframes: {
       tilt: {
@@ -30,6 +31,14 @@ module.exports = {
         },
         "75%": {
           transform: "rotate(-0.3deg)",
+        },
+      },
+      pulse: {
+        "0%, 100%": {
+          opacity: 1,
+        },
+        "50%": {
+          opacity: 0.1,
         },
       },
     },

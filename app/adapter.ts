@@ -2,10 +2,6 @@ import { z } from "zod"
 import { SessionSequence, sequenceSchema } from "./domain"
 import { useState } from "react"
 
-const responseSchema = z.object({
-  sequence: sequenceSchema,
-})
-
 // AI POWERED BEAT GENERATION. WOW
 // use proper mutations, how to read from data from server actions?
 export function useGenerateNextBeatMutation() {
@@ -14,22 +10,25 @@ export function useGenerateNextBeatMutation() {
   const mutate = ({
     sequence,
     bpm,
+    machine,
   }: {
     sequence: SessionSequence
     bpm: number
+    machine: string
   }) => {
-    try {
-      setIsLoading(true)
-      return fetch(`/api/generate-sequence`, {
-        method: "POST",
-        body: JSON.stringify({
-          sequence,
-          bpm,
-        }),
-      }).then(async (resp) => responseSchema.parse(await resp.json()))
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(true)
+    return fetch(`/api/generate-sequence`, {
+      method: "POST",
+      body: JSON.stringify({
+        sequence,
+        bpm,
+        machine,
+      }),
+    })
+      .then(async (resp) => sequenceSchema.parse(await resp.json()))
+      .finally(() => {
+        setIsLoading(false)
+      })
   }
 
   return { mutate, isLoading }

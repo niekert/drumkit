@@ -1,12 +1,5 @@
 import { SessionSequence, sequenceSchema } from "@/app/domain"
-import {
-  Configuration,
-  OpenAIApi,
-  ChatCompletionResponseMessage,
-  CreateChatCompletionResponse,
-  ModelError,
-  ErrorResponse,
-} from "openai-edge"
+import { Configuration, OpenAIApi } from "openai-edge"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
@@ -20,6 +13,7 @@ export const runtime = "edge"
 const nextBeatReq = z.object({
   bpm: z.number(),
   sequence: sequenceSchema,
+  machine: z.string(),
 })
 
 const config = new Configuration({
@@ -35,6 +29,7 @@ Below is an example JSON object that you will receive as input
 
 {
   "bpm": 120, // The target BPM / tempo
+  "machine": "808", // The drum machine used, for example 808
   "sequence":  {
     Kick: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
     Snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
@@ -50,17 +45,19 @@ Below is an example JSON object that you will receive as input
 It is your job to reply with a sequence of samples that builds on the provided sequence. Keep in mind the name of the various drum samples, the tempo, and the current arrangement of samples.
 
 Below are the most important rules you should stick to:
-  - ALWAYS respond with only JSON of the "sequence" property as received from the input. A sequence for a sample should always contain exactly 16 numbers (0 meaning off or 1 means playing).
-  - ALWAYS respond with exactly 1 bar of samples (16 steps)
+  - ALWAYS respond with only JSON of the "sequence" property as received from the input. Do not include the "sequence" key yourself.
+  - ALWAYS respond with exactly 16 steps of sequence for every key
   - ALWAYS take into account the sounds of the given samples (instruments) and how they interact with each other
-  - ALWAYS provide exciting new drum loops. Include variations of different samples in your drum loops.
+  - ALWAYS keep the model of the drum machine in mind and decide on beats that fits the machine
+  - ALWAYS provide exciting new drum loops. Include variations of different samples and instrument in the drum loop
+  - Try to respond with variation in the instruments and loops used. Try to build up
   - ALWAYS respond with a sequence that builds on the provided sequence (progresses)
   - ALWAYS respond with a sequence that is in time with the provided bpm (tempo)
   - ALWAYS assume the provided JSON input is valid and contains all you need. The user will only provide JSON and you will only reply in JSON
 `
 
 export async function POST(req: NextRequest) {
-  const { bpm, sequence } = nextBeatReq.parse(await req.json())
+  const requestBody = nextBeatReq.parse(await req.json())
 
   const response = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
@@ -72,7 +69,11 @@ export async function POST(req: NextRequest) {
       },
       {
         role: "user",
-        content: JSON.stringify({ bpm, sequence }),
+        content: JSON.stringify({
+          bpm: requestBody.bpm,
+          machine: requestBody.machine,
+          sequence: requestBody.sequence,
+        }),
       },
     ],
   })
