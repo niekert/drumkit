@@ -1,4 +1,4 @@
-import DrumMachine from "./components/DrumMachine"
+import DrumMachine from "./DrumMachine"
 import fs from "fs"
 import path from "path"
 import { cache } from "react"

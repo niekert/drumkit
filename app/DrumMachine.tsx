@@ -1,15 +1,12 @@
 "use client"
-import { useState, type ReactNode, useEffect, Fragment } from "react"
+import { useState, type ReactNode, useEffect, Fragment, SVGProps } from "react"
 import cx from "classnames"
 import { motion } from "framer-motion"
 
-import { IconAudio, IconDuplicate, IconPlus } from "./Icons"
-import {
-  Sequence,
-  useSequencer,
-  PlayerState,
-  Sequencer,
-} from "../services/player"
+import { IconAudio, IconDuplicate, IconMagic, IconPlus } from "./Icons"
+import { useSequencer, SequencerState, Sequencer } from "./services/player"
+import { Sequence } from "./domain"
+import { useGenerateNextBeatMutation } from "./adapter"
 
 export interface Sample {
   url: string
@@ -29,24 +26,22 @@ export interface DrumMachineProps {
   drumMachines: string[]
 }
 
-function newSequence(length: number): Sequence {
-  return Array.from({ length }, () => 0)
-}
-
 export default function DrumMachine({
   samples,
   initialMachine,
   drumMachines,
 }: DrumMachineProps): ReactNode {
-  const [bpmString, setBpm] = useState("120")
   const [selectedMachine, setSelectedMachine] = useState(initialMachine)
 
   const loadedSamples = samples[selectedMachine]
 
-  const { sequencer: sequencer, state } = useSequencer(
-    bpmString.length > 0 ? Number.parseInt(bpmString) : 1,
-    loadedSamples
-  )
+  const { sequencer: sequencer, state } = useSequencer(loadedSamples)
+
+  const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value.length > 0) {
+      sequencer.setBpm(Number.parseInt(e.target.value, 10))
+    }
+  }
 
   const isPlaying = state.status === "started"
 
@@ -83,10 +78,10 @@ export default function DrumMachine({
               type="number"
               className="px-2 h-8 text-gray-900 rounded-md"
               placeholder="BPM"
-              value={bpmString}
               min={1}
               max={1000}
-              onChange={(e) => setBpm(e.target.value)}
+              defaultValue={Sequencer.INITIAL_BPM}
+              onChange={handleBpmChange}
             />
           </div>
         </div>
@@ -122,11 +117,12 @@ function isOddGroup(step: number) {
 interface DrumSequenceProps {
   samples: Sample[]
   player: Sequencer
-  state: PlayerState
+  state: SequencerState
 }
 
 function DrumSession({ samples, player, state }: DrumSequenceProps) {
   const [dragMode, setDragMode] = useState<"add" | "delete" | null>(null)
+  const nextBeatMutation = useGenerateNextBeatMutation()
 
   useEffect(() => {
     return () => player.stop()
@@ -137,6 +133,22 @@ function DrumSession({ samples, player, state }: DrumSequenceProps) {
     document.addEventListener("mouseup", onMouseUp)
     return () => document.removeEventListener("mouseup", onMouseUp)
   })
+
+  const handleGenerateNextSequence = async () => {
+    console.log("ayo")
+    try {
+      const response = await nextBeatMutation.mutate({
+        sequence: state.sequence,
+        bpm: state.bpm,
+      })
+
+      console.log("setting next", response)
+
+      player.extend("set", response.sequence)
+    } catch (err) {
+      console.error("Something went wrong with generation")
+    }
+  }
 
   const sequenceLength = state.sequence[Object.keys(state.sequence)[0]].length
 
@@ -213,39 +225,49 @@ function DrumSession({ samples, player, state }: DrumSequenceProps) {
           </Fragment>
         ))}
 
-        <EndOfSequenceActions player={player} />
+        <div
+          className="flex flex-col items-center justify-center gap-6"
+          style={{
+            gridColumn: "end", // Place it in the last column
+            gridRow: "1 / -1", // Span it across all rows
+          }}
+        >
+          <EndOfSequenceAction
+            icon={IconDuplicate}
+            onClick={() => player.extend("copy")}
+          />
+          <EndOfSequenceAction
+            icon={IconPlus}
+            onClick={() => player.extend("empty")}
+          />
+          <EndOfSequenceAction
+            icon={IconMagic}
+            onClick={handleGenerateNextSequence}
+          />
+        </div>
       </div>
     </div>
   )
 }
 
-export function EndOfSequenceActions({ player }: { player: Sequencer }) {
+export function EndOfSequenceAction({
+  onClick,
+  icon: Icon,
+}: {
+  onClick: VoidFunction
+  icon: React.ComponentType<SVGProps<SVGSVGElement>>
+}) {
   return (
-    <div
-      className="flex flex-col items-center justify-center gap-6"
+    <motion.button
+      className="text-gray-400"
+      whileHover={{ scale: 1.05, color: "#FFF" }}
+      onClick={onClick}
       style={{
         gridColumn: "end", // Place it in the last column
         gridRow: "1 / -1", // Span it across all rows
       }}
     >
-      <motion.button
-        className="text-gray-400"
-        whileHover={{ scale: 1.05, color: "#FFF" }}
-        onClick={() => player.extend("copy")}
-      >
-        <IconDuplicate className="w-6 h-6" />
-      </motion.button>
-      <motion.button
-        className="text-gray-400"
-        whileHover={{ scale: 1.05, color: "#FFF" }}
-        onClick={() => player.extend("empty")}
-        style={{
-          gridColumn: "end", // Place it in the last column
-          gridRow: "1 / -1", // Span it across all rows
-        }}
-      >
-        <IconPlus className="w-6 h-6" />
-      </motion.button>
-    </div>
+      <Icon className="w-6 h-6" />
+    </motion.button>
   )
 }

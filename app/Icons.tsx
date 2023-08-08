@@ -1,4 +1,4 @@
-import { SVGProps } from "react"
+import { SVGProps, useId } from "react"
 
 export const IconAudio = () => (
   <svg
@@ -71,5 +71,54 @@ export const IconDuplicate = (props: SVGProps<SVGSVGElement>) => {
         fill="currentColor"
       />
     </svg>
+  )
+}
+
+export const IconMagic = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
+  const filterId = "magic-filter"
+
+  return (
+    <>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" {...props}>
+        <path
+          data-magic-id="circle"
+          d="M8.5 12C7.67925 12 7 12.6651 7 13.5C7 14.3349 7.66509 15 8.5 15C9.33491 15 10 14.3349 10 13.5C10 12.6651 9.32075 12 8.5 12Z"
+          fill="currentColor"
+        />
+        <path
+          data-magic-id="tiny-circle"
+          d="M14.5 17C14.2264 17 14 17.2217 14 17.5C14 17.7783 14.2217 18 14.5 18C14.7783 18 15 17.7783 15 17.5C15 17.2217 14.7736 17 14.5 17Z"
+          fill="currentColor"
+        />
+        <path
+          data-magic-id="sparkle"
+          d="M19.6604 9.00124L16.3242 7.67725L14.9934 4.34007C14.811 3.88664 14.173 3.88664 13.9907 4.34007L12.678 7.67725L9.34183 9.00124C8.88606 9.1826 8.88606 9.81739 9.34183 9.99876L12.678 11.3228L13.9907 14.6599C14.173 15.1134 14.811 15.1134 14.9934 14.6599L16.306 11.3228L19.6422 9.99876C20.1162 9.81739 20.1162 9.1826 19.6604 9.00124Z"
+          fill="currentColor"
+        />
+        <defs>
+          <filter
+            id={filterId}
+            x="3"
+            y="2"
+            width="19"
+            height="19"
+            filterUnits="userSpaceOnUse"
+            colorInterpolationFilters="sRGB"
+          >
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend
+              mode="normal"
+              in="SourceGraphic"
+              in2="BackgroundImageFix"
+              result="shape"
+            />
+            <feGaussianBlur
+              stdDeviation="3.5"
+              result="effect1_foregroundBlur_339_100314"
+            />
+          </filter>
+        </defs>
+      </svg>
+    </>
   )
 }

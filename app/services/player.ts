@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react"
 import { PlaybackState, Player, Player as PlayerBuffer, Transport } from "tone"
 import { EventEmitter } from "events"
+import { Sequence, SessionSequence } from "../domain"
 
 export interface Sample {
   url: string
   name: string
-}
-
-// 0 = off, 1 = on
-// TODO: support velocity? <3
-export type Sequence = number[]
-export type SessionSequence = {
-  [sample: string]: Sequence
 }
 
 function getSnapshot() {
@@ -45,6 +39,8 @@ export class Sequencer {
   private _sequence: SessionSequence
   private repeatIntervalId: number | null = null
 
+  public static readonly INITIAL_BPM = 120
+
   public static newSequence(length: number): Sequence {
     return Array.from({ length }, () => 0)
   }
@@ -59,12 +55,17 @@ export class Sequencer {
 
   constructor(private samples: Sample[]) {
     this._sequence = Sequencer.fromSamples(samples)
+
+    if (globalThis.window) {
+      // Ignore on server hacky way
+      Transport.bpm.value = Sequencer.INITIAL_BPM
+    }
   }
 
   public setNote = (sample: string, step: number, nextValue?: number) => {
     const nextSession = {
-      ...this.session,
-      [sample]: this.session[sample].map((value, idx) => {
+      ...this.sequence,
+      [sample]: this.sequence[sample].map((value, idx) => {
         if (idx === step) {
           return nextValue ?? value === 0 ? 1 : 0
         }
@@ -78,11 +79,21 @@ export class Sequencer {
     this.emitter.emit("tick")
   }
 
-  public extend = (mode: "copy" | "empty") => {
+  public extend = <
+    TMode extends "copy" | "empty" | "set",
+    TSequence extends TMode extends "set" ? SessionSequence : never
+  >(
+    mode: TMode,
+    setSequence: TSequence
+  ) => {
     const nextSession = Object.fromEntries(
-      Object.entries(this.session).map(([sample, sequence]) => {
+      Object.entries(this.sequence).map(([sample, sequence]) => {
         const nextSequence =
-          mode === "empty" ? Sequencer.newSequence(16) : sequence.slice(-16)
+          mode === "set"
+            ? setSequence[sample]
+            : mode === "empty"
+            ? Sequencer.newSequence(16)
+            : sequence.slice(-16)
 
         return [sample, [...sequence, ...nextSequence]]
       })
@@ -126,27 +137,30 @@ export class Sequencer {
     const buffers = Object.values(this.tracks)
 
     // We need to call Tone.start() from a user event for the browser permissions.
-    // so we fake a track with 0 audio
+    // so we fake a track without any audio
     const fakePlayer = new Player(buffers[0].buffer).toDestination()
     fakePlayer.volume.value = -10000
-
     fakePlayer.start()
+
+    // Repeat every 16th node
     this.repeatIntervalId = Transport.scheduleRepeat((time) => {
       for (let sample of this.samples) {
         const track = this.tracks[sample.name]
 
         if (!track) continue
 
-        const sequence = this.session[sample.name]
+        const sequence = this.sequence[sample.name]
 
         if (sequence[this.currentStep] === 1) {
           track.start(time)
         }
       }
 
-      const totalSteps = Object.values(this.session)[0].length
+      const totalSteps = Object.values(this.sequence)[0].length
 
+      // Kinda hacking here
       this.currentStep = (this.currentStep + 1) % totalSteps
+
       this.emitter.emit("tick", this.currentStep)
     }, "16n")
 
@@ -176,43 +190,56 @@ export class Sequencer {
     return this.currentStep
   }
 
-  public get session() {
+  public get sequence() {
     return this._sequence
+  }
+
+  public get bpm() {
+    return Transport.bpm.value
   }
 }
 
-export interface PlayerState {
+export interface SequencerState {
   status: PlaybackState
   sequence: SessionSequence
   currentStep: number
+  bpm: number
 }
 
-export function useSequencer(bpm: number, samples: Sample[]) {
+export function useSequencer(samples: Sample[]) {
   const transportStatus = useTransportState()
 
   // Use state instead of useMemo for safety?
   const sequencer = useMemo<Sequencer>(() => new Sequencer(samples), [samples])
 
+  const subscribe = useCallback(
+    (subscribe: VoidFunction) => sequencer.tick(subscribe),
+    [sequencer]
+  )
+
   const currentStep = useSyncExternalStore(
-    useCallback((subscribe) => sequencer.tick(subscribe), [sequencer]),
+    subscribe,
     useCallback(() => sequencer.step, [sequencer]),
     () => 0
   )
 
   const sequence = useSyncExternalStore(
-    useCallback((subscribe) => sequencer.tick(subscribe), [sequencer]),
-    useCallback(() => sequencer.session, [sequencer]),
-    useCallback(() => sequencer.session, [sequencer])
+    subscribe,
+    useCallback(() => sequencer.sequence, [sequencer]),
+    useCallback(() => sequencer.sequence, [sequencer])
   )
 
-  useEffect(() => {
-    sequencer.setBpm(bpm)
-  }, [bpm, sequencer])
+  const bpm = useSyncExternalStore(
+    subscribe,
+    useCallback(() => sequencer.bpm, [sequencer]),
+    useCallback(() => 120, [])
+  )
 
-  const state: PlayerState = {
+  const state: SequencerState = {
     currentStep,
     sequence,
     status: transportStatus,
+    bpm,
   }
 
   return {
