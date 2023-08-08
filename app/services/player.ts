@@ -87,12 +87,14 @@ export class SequencePlayer {
     this.emitter.emit("tick")
   }
 
-  public extend = () => {
+  public extend = (mode: "copy" | "empty") => {
     const nextSession = Object.fromEntries(
-      Object.entries(this.session).map(([sample, sequence]) => [
-        sample,
-        [...sequence, ...newSequence(16)],
-      ])
+      Object.entries(this.session).map(([sample, sequence]) => {
+        const nextSequence =
+          mode === "empty" ? newSequence(16) : sequence.slice(-16)
+
+        return [sample, [...sequence, ...nextSequence]]
+      })
     ) satisfies SessionSequence
 
     this._session = nextSession

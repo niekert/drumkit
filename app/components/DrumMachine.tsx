@@ -3,7 +3,7 @@ import { useState, type ReactNode, useEffect, Fragment } from "react"
 import cx from "classnames"
 import { motion } from "framer-motion"
 
-import { IconAudio, IconPlus } from "./Icons"
+import { IconAudio, IconDuplicate, IconPlus } from "./Icons"
 import {
   Sequence,
   SessionSequence,
@@ -203,18 +203,40 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
             })}
           </Fragment>
         ))}
-        <motion.button
-          className="text-gray-400"
-          whileHover={{ scale: 1.05, color: "#FFF" }}
-          onClick={player.extend}
-          style={{
-            gridColumn: "end", // Place it in the last column
-            gridRow: "1 / -1", // Span it across all rows
-          }}
-        >
-          <IconPlus className="w-10 h-10" />
-        </motion.button>
+
+        <EndOfSequenceActions player={player} />
       </div>
+    </div>
+  )
+}
+
+export function EndOfSequenceActions({ player }: { player: SequencePlayer }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-6"
+      style={{
+        gridColumn: "end", // Place it in the last column
+        gridRow: "1 / -1", // Span it across all rows
+      }}
+    >
+      <motion.button
+        className="text-gray-400"
+        whileHover={{ scale: 1.05, color: "#FFF" }}
+        onClick={() => player.extend("copy")}
+      >
+        <IconDuplicate className="w-6 h-6" />
+      </motion.button>
+      <motion.button
+        className="text-gray-400"
+        whileHover={{ scale: 1.05, color: "#FFF" }}
+        onClick={() => player.extend("empty")}
+        style={{
+          gridColumn: "end", // Place it in the last column
+          gridRow: "1 / -1", // Span it across all rows
+        }}
+      >
+        <IconPlus className="w-6 h-6" />
+      </motion.button>
     </div>
   )
 }
