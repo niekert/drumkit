@@ -22,7 +22,7 @@ export const getSamples = cache(async () => {
     const files = fs.readdirSync(`public/samples/${machine}`)
 
     samples[machine] = files.map((file) => ({
-      name: file.split(".")[0],
+      name: file.split("-")[1].split(".")[0],
       url: `/samples/${machine}/${file}`,
     }))
   }

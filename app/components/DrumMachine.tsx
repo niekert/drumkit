@@ -52,55 +52,62 @@ export default function DrumMachine({
   const isPlaying = state.status === "started"
 
   return (
-    <div className="bg-gray-900 rounded-md p-8 gap-8 flex flex-col w-[1200px] max-w-full">
-      <div className="flex justify-between items-center">
-        <div className="text-5xl ">DrumKit</div>
-        <div className="gap-2 grid grid-rows-2  grid-cols-2">
-          <label htmlFor="machine" className="text-right">
-            Machine
-          </label>
-          <select
-            value={selectedMachine}
-            onChange={(e) => setSelectedMachine(e.target.value)}
-            className="w-56 text-black"
-          >
-            {drumMachines.map((machine) => (
-              <option key={machine} value={machine}>
-                {machine}
-              </option>
-            ))}
-          </select>
+    <div className="bg-black rounded-lg flex flex-col w-[1200px] max-w-full relative p-0.5 group">
+      {/* GLOEIENDE GLOEIENDE */}
+      <div className="hidden lg:block absolute z-0 -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-60 group-hover:opacity-75 transition duration-1000 group-hover:duration-500 animate-tilt"></div>
+      <div className="z-10 bg-black p-8 rounded-lg space-y-6">
+        <div className="flex flex-col md:flex-row justify-between md:items-center items-start">
+          <div className="text-5xl font-product">
+            <span>DRUM</span>
+            <span className="opacity-70">KIT</span>
+          </div>
+          <div className="gap-2 grid grid-rows-2 grid-cols-2 font-product">
+            <label htmlFor="machine" className="text-right">
+              Drum Machine
+            </label>
+            <select
+              value={selectedMachine}
+              onChange={(e) => setSelectedMachine(e.target.value)}
+              className="w-[130px] text-gray-900 rounded-md"
+            >
+              {drumMachines.map((machine) => (
+                <option key={machine} value={machine}>
+                  {machine}
+                </option>
+              ))}
+            </select>
 
-          <label htmlFor="bpm" className="text-right">
-            bpm
-          </label>
-          <input
-            type="number"
-            className="ml-2 w-12 h-8 text-black"
-            placeholder="BPM"
-            value={bpmString}
-            min={1}
-            max={1000}
-            onChange={(e) => setBpm(e.target.value)}
-          />
+            <label htmlFor="bpm" className="text-right">
+              BPM
+            </label>
+            <input
+              type="number"
+              className="px-2 h-8 text-gray-900 rounded-md"
+              placeholder="BPM"
+              value={bpmString}
+              min={1}
+              max={1000}
+              onChange={(e) => setBpm(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
 
-      <div>
-        <button
-          onClick={isPlaying ? player.stop : player.start}
-          className="border-blue-600 border-4 p-4 rounded-md"
-        >
-          {isPlaying ? "Stop" : "Play"}
-        </button>
+        <div>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            onClick={isPlaying ? player.stop : player.start}
+            className="p-4 rounded-md font-product -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 opacity-90"
+          >
+            {isPlaying ? "Stop" : "Play"}
+          </motion.button>
+        </div>
+        <DrumSession
+          samples={loadedSamples}
+          sequence={sequence}
+          player={player}
+          state={state}
+        />
       </div>
-
-      <DrumSession
-        samples={loadedSamples}
-        sequence={sequence}
-        player={player}
-        state={state}
-      />
     </div>
   )
 }
@@ -146,14 +153,17 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
         {samples.map((sample) => (
           <Fragment key={sample.name}>
             <div
-              className="grid-col flex items-center border-gray-700 py-1 px-1 border first:rounded-t-md last:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20"
+              className="grid-col flex items-center rounded-sm border-gray-700 py-1 px-1 border last-of-type:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20 font-product "
               key={sample.url}
               style={{
                 gridColumn: 1,
               }}
             >
               <span>{sample.name}</span>
-              <button onClick={() => player.playSample(sample.name)}>
+              <button
+                onClick={() => player.playSample(sample.name)}
+                className="text-gray-300 hover:text-gray-100"
+              >
                 <IconAudio />
               </button>
             </div>
@@ -182,19 +192,19 @@ function DrumSession({ sequence, samples, player, state }: DrumSequenceProps) {
                   variants={{
                     active: {
                       scale: 1.3,
-                      borderRadius: "20%",
+                      borderRadius: "8px",
                     },
                     norma: {
                       scale: 1,
-                      borderRadius: 0,
+                      borderRadius: "2px",
                     },
                   }}
                   animate={isActive && isSelected ? "active" : "normal"}
                   key={idx}
-                  className={cx({
+                  className={cx("rounded-sm", {
                     "bg-gray-700": !isActive && !isSelected && !isOddGroup(idx),
                     "bg-gray-800": !isActive && !isSelected && isOddGroup(idx),
-                    "bg-blue-500": !isActive && isSelected,
+                    "bg-blue-400": !isActive && isSelected,
                     "bg-white": isActive && isSelected,
                     "bg-gray-600": isActive && !isSelected,
                   })}
