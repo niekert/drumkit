@@ -11,7 +11,13 @@ import {
 import cx from "classnames"
 import { motion } from "framer-motion"
 
-import { IconAudio, IconDuplicate, IconMagic, IconPlus } from "./Icons"
+import {
+  IconAudio,
+  IconDelete,
+  IconDuplicate,
+  IconMagic,
+  IconPlus,
+} from "./Icons"
 import { useSequencer, SequencerState, Sequencer } from "./services/player"
 import { Sequence } from "./domain"
 import { useGenerateNextBeatMutation } from "./adapter"
@@ -180,16 +186,19 @@ function DrumSession({
 
   const sequenceLength = state.sequence[Object.keys(state.sequence)[0]].length
 
+  // One bar equals 16 steps
+  const barLength = sequenceLength / 16
+
   return (
     <div className="overflow-auto pb-3 flex items-center">
       <div
         className="grid gap-1 overflow-x-auto max-w-full py-4 relative"
         style={{
-          gridTemplateRows: `repeat(${samples.length}, 34px)`,
+          gridTemplateRows: `repeat(${samples.length}, 34px) auto`,
           gridTemplateColumns: `auto repeat(${sequenceLength}, 50px) auto`,
         }}
       >
-        {samples.map((sample, rowIdx) => (
+        {samples.map((sample) => (
           <Fragment key={sample.name}>
             <div
               className="grid-col flex items-center rounded-sm border-gray-700 py-1 px-1 border last-of-type:rounded-b-md justify-between sticky left-0 bg-gray-900 z-20 font-product whitespace-nowrap lg:w-[200px]"
@@ -235,6 +244,28 @@ function DrumSession({
                 />
               )
             })}
+
+            {Array.from({ length: barLength }).map((_, barIndex) => {
+              return (
+                <div
+                  style={{
+                    gridRow: "end",
+                    gridColumn: `${2 + barIndex * 16} / span 16`,
+                  }}
+                  className="border-l border-b border-r border-gray-400 border-opacity-5 rounded-sm h-9 px-2"
+                  key={`bar-${barIndex}`}
+                >
+                  {barLength > 1 && (
+                    <button
+                      className="flex items-center justify-center text-gray-400"
+                      onClick={() => player.deleteBar(barIndex)}
+                    >
+                      <IconDelete />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </Fragment>
         ))}
 
@@ -276,12 +307,13 @@ function SkeletonNextSequence({ length }: { length: number }) {
       className="grid grid-cols-1 gap-1 w-[50px] opacity-20 animate-pulse"
       style={{
         gridTemplateColumns: `repeat(${2}, 50px)`,
-        gridTemplateRows: `repeat(${length}, 34px)`,
+        gridTemplateRows: `repeat(${length}, 34px) auto`,
       }}
     >
       {Array.from({ length: length * 2 }).map((sample, idx) => (
         <Note key={idx} isActive={false} isSelected={false} colIndex={0} />
       ))}
+      <div />
     </div>
   )
 }

@@ -138,6 +138,23 @@ export class Sequencer {
     Transport.bpm.value = bpm
   }
 
+  public deleteBar = (barIndex: number) => {
+    const nextSession = Object.fromEntries(
+      Object.entries(this.sequence).map(([sample, sequence]) => {
+        return [
+          sample,
+          sequence.filter((_, idx) => {
+            return idx < barIndex * 16 || idx >= (barIndex + 1) * 16
+          }),
+        ]
+      })
+    ) satisfies SessionSequence
+
+    this._sequence = nextSession
+
+    this.emitter.emit("tick")
+  }
+
   public start = async () => {
     await this.loadSamples()
 
@@ -152,6 +169,9 @@ export class Sequencer {
     fakePlayer.start()
 
     // Repeat every 16th node
+    Transport.swing = 0.5
+    Transport.swingSubdivision = "16n"
+
     this.repeatIntervalId = Transport.scheduleRepeat((time) => {
       for (let sample of this.samples) {
         const track = this.tracks[sample.name]

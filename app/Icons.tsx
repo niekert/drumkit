@@ -122,3 +122,18 @@ export const IconMagic = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     </>
   )
 }
+
+export const IconDelete = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M19.25 6.72h-4.385v-.47c0-1.24-1.01-2.25-2.25-2.25h-1.23c-1.24 0-2.25 1.01-2.25 2.25v.47H4.75a.749.749 0 100 1.5h11.332v9.53c0 .413-.337.75-.75.75H8.668a.752.752 0 01-.75-.75V7.885a.749.749 0 10-1.5 0v9.865c0 1.24 1.01 2.25 2.25 2.25h6.668c1.24 0 2.25-1.01 2.25-2.25V8.22h1.665a.749.749 0 100-1.5zm-8.615-.47c0-.412.338-.75.75-.75h1.23c.412 0 .75.338.75.75v.47h-2.73v-.47z"
+        fill="currentColor"
+      />
+      <path
+        d="M11.14 15.625v-4.53a.749.749 0 10-1.5 0v4.53a.749.749 0 101.5 0zM14.36 15.625v-4.53a.749.749 0 10-1.5 0v4.53a.749.749 0 101.5 0z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
